@@ -8,7 +8,7 @@ from email.mime.text import MIMEText
 
 
 class Email:
-    def __init__(self, subject, receiver, sender = 'monitor<monitor@mioji.com>'):
+    def __init__(self, subject, receiver, sender = ''):
         self.msg = MIMEMultipart()
         self.msg['Subject'] = subject
         self.msg['To'] = ';'.join(receiver)
@@ -29,9 +29,7 @@ class Email:
         self.msg.attach(attachment)
         pass
 
-    def launch(self, server = 'smtp.exmail.qq.com', 
-            user = 'monitor@mioji.com', 
-            passwd = 'Mioji@2015Monitor'):
+    def launch(self, server = 'smtp.exmail.qq.com', user = '', passwd = ''):
         try:
             client = smtplib.SMTP(server)
             client.login(user, passwd)
@@ -43,7 +41,7 @@ class Email:
 
 
 if __name__ == '__main__':  
-    email = Email('test', ['zhanghongtao@mioji.com'])
+    email = Email('test', ['htao_zhang@126.com'])
     email.addContent('hello world')
     email.addAttachment('./MySql.py')
     email.launch()
