@@ -3,68 +3,93 @@
 
 import sys
 import MySQLdb
+import CommInfo
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
-class MySql:
-    __connect, __cursor = None, None
 
-    def __init__(self, host, user, passwd, db):
-        try:
-            self.__connect = MySQLdb.connect(
-                    host = host,
-                    port = 3306,
-                    user = user,
-                    passwd = passwd,
-                    db = db,
-                    charset = 'utf8'
-                )
-            self.__cursor = self.__connect.cursor()
-            self.__db = db
-        except MySQLdb.Error, e:
-            print 'connect error: %s' % str()
-    
+class MySql:
+    __connectoin = None
+
+    def __init__(self, *args):
+        if len(args) == 2:
+            self.__db, self.__user = args
+            # info = getattr(__import__('CommInfo'), self.__db + '_' + self.__user)
+            info = eval('CommInfo.' + self.__db + '_' + self.__user)
+            self.__host, self.__user, self.__passwd = info['host'], info['user'], info['passwd']
+        elif len(args) == 4:
+            self.__host, self.__user, self.__passwd, self.__db = args
+        else:
+            raise ValueError
+        
+        self.__connect()
 
     def __del__(self):
-        if (self.__cursor):
-            self.__cursor.close()
-        if (self.__connect):
-            self.__connect.close()
+        if (self.__connection):
+            self.__connection.close()
+            pass
+        pass
     
-    
+    '''
+    function: connect
+    '''
+    def __connect(self):
+        try:
+            self.__connection = MySQLdb.connect(
+                host = self.__host,
+                port = 3306,
+                user = self.__user,
+                passwd = self.__passwd,
+                db = self.__db,
+                charset = 'utf8')
+        except MySQLdb.Error, e:
+            print 'connect error: %s' % str()
+            pass
+        pass
+
+    '''
+    function: cursor
+    '''
+    def __cursor(self):
+        try: 
+            return self.__connection.cursor()
+        except(AttributeError, MySQLdb.OperationalError):
+            self.__connect()
+            return self.__connection.cursor()
+
     '''
     执行sql，正常返回影响的行数，异常返回False
     '''
     def exeSql(self, sql):
         result = 0
         try:
-            self.__cursor = self.__connect.cursor()
-            result = self.__cursor.execute(sql)
-            self.__connect.commit()
+            cursor = self.__cursor()
+            result = cursor.execute(sql)
+            self.__connection.commit()
         except MySQLdb.Error, e:
             print 'exeSql error: %s' % str(e)
             return False
         finally:
-            if (self.__cursor):
-                self.__cursor.close()
+            if (cursor):
+                cursor.close()
         return result
 
     '''
     批量执行sql，正常返回影响的行数，异常返回False
     '''
-    def exeSqls(self, sql, args = None):
+    def exeSqls(self, sql, args=None):
         result = 0
         try:
-            self.__cursor = self.__connect.cursor()
-            result = self.__cursor.executemany(sql, args)
-            self.__connect.commit()
+            cursor = self.__cursor()
+            result = cursor.executemany(sql, args)
+            self.__connection.commit()
         except MySQLdb.Error, e:
             print 'exeSqls error: %s' % str(e)
             return False
         finally:
-            if (self.__cursor):
-                self.__cursor.close()
+            if (cursor):
+                cursor.close()
         return result
 
     '''
@@ -72,39 +97,38 @@ class MySql:
     '''
     def querySql(self, sql):
         result = []
-        try:            
-            self.__cursor = self.__connect.cursor()
-            self.__cursor.execute(sql)
-            records = self.__cursor.fetchall()
+        try:
+            cursor = self.__cursor()
+            cursor.execute(sql)
+            records = cursor.fetchall()
             for record in records:
                 result.append(record)
         except MySQLdb.Error, e:
             print 'querySql error: %s' % str(e)
             return None
         finally:
-            if (self.__cursor):
-                self.__cursor.close()
+            if (cursor):
+                cursor.close()
         return result
 
     '''
     查询一张表的所有字段名
     '''
-    def getFields(self, table, db = None):   
+    def getFields(self, table, db = None):
         result = []
         try:
             sql = 'select column_name from information_schema.columns \
                     where table_name = "%s" and table_schema = "%s"' % (table, db if db else self.__db)
-            self.__cursor = self.__connect.cursor()
-            self.__cursor.execute(sql)
-            records = self.__cursor.fetchall()
+            cursor = self.__cursor()
+            cursor.execute(sql)
+            records = cursor.fetchall()
             for record in records:
                 result.append(record)
         except MySQLdb.Error, e:
             print 'querySql error: %s' % str(e)
             return None
         finally:
-            if (self.__cursor):
-                self.__cursor.close()
+            if (cursor):
+                cursor.close()
         return result
-
 
